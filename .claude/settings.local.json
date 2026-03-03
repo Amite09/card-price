@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Bright_Data__search_engine",
+      "mcp__Bright_Data__scrape_as_markdown"
+    ]
+  }
+}

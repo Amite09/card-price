@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokemon Card Price Lookup</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Pokemon Card Price Lookup</h1>
+    <p>Enter a card name and number to compare prices across sources</p>
+  </header>
+
+  <main>
+    <form id="search-form">
+      <div class="search-box">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="e.g. Charizard 4/102"
+          required
+          autofocus
+        />
+        <button type="submit" id="search-btn">Search</button>
+      </div>
+      <p class="format-hint">Format: <code>Card Name NUM/TOTAL</code></p>
+    </form>
+
+    <div id="error-banner" class="error-banner" hidden></div>
+    <div id="card-header" class="card-header" hidden>
+      <div id="card-image-wrap" class="card-image-wrap"></div>
+      <div id="query-info" class="query-info"></div>
+    </div>
+    <div id="results" class="results-grid"></div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

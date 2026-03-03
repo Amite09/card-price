@@ -1,0 +1,355 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0f1923;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+}
+
+header h1 {
+  font-size: 1.8rem;
+  color: #ffcb05;
+  margin-bottom: 0.3rem;
+}
+
+header p {
+  color: #8899a6;
+  font-size: 0.95rem;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Search */
+#search-form {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.search-box {
+  display: flex;
+  max-width: 500px;
+  margin: 0 auto;
+  gap: 0.5rem;
+}
+
+#search-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #2d3e50;
+  border-radius: 8px;
+  background: #1a2a3a;
+  color: #e0e0e0;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#search-input:focus {
+  border-color: #ffcb05;
+}
+
+#search-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #ffcb05;
+  color: #0f1923;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#search-btn:hover {
+  background: #e6b800;
+}
+
+#search-btn:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+
+.format-hint {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #556677;
+}
+
+.format-hint code {
+  background: #1a2a3a;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: #8899a6;
+}
+
+/* Error */
+.error-banner {
+  background: #3a1a1a;
+  border: 1px solid #cc4444;
+  color: #ff6666;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* Card header with image */
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #1a2a3a;
+  border-radius: 10px;
+  border: 1px solid #2d3e50;
+}
+
+.card-image-wrap {
+  flex-shrink: 0;
+}
+
+.card-image-wrap img {
+  width: 180px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s;
+}
+
+.card-image-wrap img:hover {
+  transform: scale(1.05);
+}
+
+/* Query info */
+.query-info {
+  color: #8899a6;
+  font-size: 0.9rem;
+  padding-top: 0.5rem;
+}
+
+.query-info .card-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffcb05;
+  margin-bottom: 0.25rem;
+}
+
+.query-info .card-set {
+  font-size: 0.95rem;
+  color: #aabbcc;
+  margin-bottom: 0.5rem;
+}
+
+.query-info .card-number {
+  font-size: 0.85rem;
+  color: #556677;
+}
+
+.query-info strong {
+  color: #ffcb05;
+}
+
+/* Results grid */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
+}
+
+/* Source card */
+.source-card {
+  background: #1a2a3a;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #2d3e50;
+  transition: border-color 0.2s;
+}
+
+.source-card:hover {
+  border-color: #3d5e70;
+}
+
+.source-card__header {
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.source-card__header .badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.source-card__body {
+  padding: 0 1rem 1rem;
+  min-height: 80px;
+}
+
+.source-card__footer {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #2d3e50;
+  text-align: right;
+}
+
+.source-card__footer a {
+  color: #4da6ff;
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.source-card__footer a:hover {
+  text-decoration: underline;
+}
+
+/* Source colors */
+.source-card--pricecharting .source-card__header { background: #1a3a2a; color: #44cc88; }
+.source-card--pricecharting .badge { background: #44cc88; color: #0f1923; }
+
+.source-card--ebay .source-card__header { background: #3a2a1a; color: #e6a22e; }
+.source-card--ebay .badge { background: #e6a22e; color: #0f1923; }
+
+.source-card--cardmarket .source-card__header { background: #3a1a2a; color: #cc6688; }
+.source-card--cardmarket .badge { background: #cc6688; color: #0f1923; }
+
+.source-card--tcgplayer .source-card__header { background: #1a2a3a; color: #4da6ff; }
+.source-card--tcgplayer .badge { background: #4da6ff; color: #0f1923; }
+
+.source-card--trollandtoad .source-card__header { background: #2a1a3a; color: #aa77dd; }
+.source-card--trollandtoad .badge { background: #aa77dd; color: #0f1923; }
+
+/* Price table */
+.price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.price-table tr {
+  border-bottom: 1px solid #2d3e50;
+}
+
+.price-table tr:last-child {
+  border-bottom: none;
+}
+
+.price-table td {
+  padding: 0.4rem 0;
+}
+
+.price-table td:first-child {
+  color: #8899a6;
+}
+
+.price-table td:last-child {
+  text-align: right;
+  color: #44cc88;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Sales list */
+.sale-item {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #2d3e50;
+  font-size: 0.82rem;
+}
+
+.sale-item:last-child {
+  border-bottom: none;
+}
+
+.sale-item__title {
+  color: #c0c0c0;
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sale-item__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sale-item__price {
+  color: #44cc88;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.sale-item__grade {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: #2d3e50;
+  color: #aabbcc;
+}
+
+.sale-item__date {
+  color: #556677;
+  font-size: 0.75rem;
+}
+
+/* Loading skeleton */
+.skeleton {
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: #2d3e50;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-line:nth-child(2) { width: 80%; }
+.skeleton-line:nth-child(3) { width: 60%; }
+.skeleton-line:nth-child(4) { width: 70%; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Error state */
+.source-card--error .source-card__body {
+  color: #cc4444;
+  font-size: 0.85rem;
+}
+
+/* No data */
+.no-data {
+  color: #556677;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+  }
+}
