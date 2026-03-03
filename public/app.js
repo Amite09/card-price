@@ -8,7 +8,7 @@ const cardImageWrap = document.getElementById('card-image-wrap');
 const queryInfo = document.getElementById('query-info');
 const recommendedDiv = document.getElementById('recommended');
 
-const SOURCES = ['pricecharting', 'ebay', 'cardmarket', 'tcgplayer', 'trollandtoad'];
+const SOURCES = ['pricecharting', 'ebay', 'tcgplayer', 'cardmarket', 'trollandtoad'];
 const SOURCE_LABELS = {
   pricecharting: 'PriceCharting',
   ebay: 'eBay Sold',
@@ -149,12 +149,16 @@ function renderRecommended(results) {
     if (eurPrice) push(buckets.raw, eurPrice / eurRate, 'Cardmarket');
   }
 
-  // TCGPlayer — ungraded market price
+  // TCGPlayer — market price (ungraded)
   const tcp = results.tcgplayer;
   if (tcp?.status === 'ok' && tcp.data?.prices) {
     const mp = parseDollar(tcp.data.prices.marketPrice);
     if (mp) push(buckets.raw, mp, 'TCGPlayer');
+    const low = parseDollar(tcp.data.prices.lowestPrice);
+    if (low) push(buckets.raw, low, 'TCGPlayer');
   }
+
+  // TrollandToad excluded from recommended prices (less reliable pricing)
 
   // Remove outliers (values more than 3x the median) from each bucket
   for (const key of Object.keys(buckets)) {
@@ -392,23 +396,12 @@ function renderCardmarket(data) {
 }
 
 function renderTcgplayer(data) {
-  if (!data?.prices || Object.keys(data.prices).length === 0) {
-    // Try search results
-    if (data?.searchResults?.length) {
-      return data.searchResults.slice(0, 5).map(r => `
-        <div class="sale-item">
-          <div class="sale-item__title">${escapeHtml(r.name)}</div>
-          <div class="sale-item__meta"><span class="sale-item__price">${r.price}</span></div>
-        </div>
-      `).join('');
-    }
-    return '';
-  }
+  if (!data?.prices || Object.keys(data.prices).length === 0) return '';
 
   const labels = {
     marketPrice: 'Market Price',
-    listedMedian: 'Listed Median',
-    low: 'Lowest',
+    lowestPrice: 'Lowest',
+    lowestWithShipping: 'Low + Shipping',
   };
 
   const rows = Object.entries(data.prices)
@@ -416,7 +409,12 @@ function renderTcgplayer(data) {
     .map(([key, val]) => `<tr><td>${labels[key]}</td><td>${val}</td></tr>`)
     .join('');
 
-  return `<table class="price-table">${rows}</table>`;
+  if (!rows) return '';
+  let html = `<table class="price-table">${rows}</table>`;
+  if (data.setName) {
+    html += `<div style="color:#556677;font-size:0.75rem;margin-top:0.4rem">${escapeHtml(data.setName)}</div>`;
+  }
+  return html;
 }
 
 function renderTrollandtoad(data) {
@@ -424,7 +422,7 @@ function renderTrollandtoad(data) {
 
   return data.listings.slice(0, 8).map(item => `
     <div class="sale-item">
-      <div class="sale-item__title" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+      <div class="sale-item__title" title="${escapeHtml(item.name)}">${escapeHtml(item.condition || item.name)}</div>
       <div class="sale-item__meta"><span class="sale-item__price">${item.price}</span></div>
     </div>
   `).join('');

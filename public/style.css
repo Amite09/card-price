@@ -232,9 +232,15 @@ main {
 
 /* Results grid */
 .results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
+  justify-content: center;
+}
+
+.results-grid > .source-card {
+  flex: 1 1 340px;
+  max-width: calc(33.333% - 0.67rem);
 }
 
 /* Source card */
@@ -412,8 +418,8 @@ main {
 }
 
 @media (max-width: 600px) {
-  .results-grid {
-    grid-template-columns: 1fr;
+  .results-grid > .source-card {
+    max-width: 100%;
   }
 
   .card-header {

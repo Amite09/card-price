@@ -1,75 +1,85 @@
-import * as cheerio from 'cheerio';
-import { fetchPage } from './brightdata.js';
+const SEARCH_API = 'https://mp-search-api.tcgplayer.com/v1/search/request';
 
 export async function scrapeTcgplayer(cardInfo) {
   const { cardName, number, total } = cardInfo;
-  const query = encodeURIComponent(`${cardName} ${number}/${total}`);
-  const url = `https://www.tcgplayer.com/search/pokemon/product?q=${query}&view=grid`;
 
-  // TCGPlayer is a SPA — needs browser zone for JS rendering
-  const html = await fetchPage(url, { browser: true, timeout: 45000 });
-  const $ = cheerio.load(html);
+  // Search with card name (number format like "4/102" confuses the API)
+  const query = encodeURIComponent(cardName);
+  const url = `${SEARCH_API}?q=${query}&isList=false`;
 
-  const prices = {};
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
 
-  // Try to find product listing prices from search results
-  const results = [];
-  $('[class*="product"], [class*="listing"], [class*="search-result"]').each((_, el) => {
-    const name = $(el).find('[class*="name"], [class*="title"]').text().trim();
-    const price = $(el).find('[class*="price"], [class*="value"]').text().trim();
-    if (name && price) {
-      results.push({ name, price });
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        algorithm: 'sales_exp_fields',
+        from: 0,
+        size: 20,
+        filters: {
+          term: { productLineName: ['pokemon'] },
+          range: {},
+          match: {},
+        },
+        listingSearch: {
+          filters: { term: {}, range: {}, exclude: {} },
+        },
+        context: { shippingCountry: 'US' },
+        settings: { useFuzzySearch: true },
+        sort: {},
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`TCGPlayer API returned ${response.status}`);
     }
-  });
 
-  // Extract market price from body text
-  const bodyText = $('body').text();
+    const data = await response.json();
+    const allResults = data.results?.[0]?.results || [];
 
-  const marketMatch = bodyText.match(/Market Price[\s:]*?\$?([\d,]+\.?\d*)/i);
-  if (marketMatch) {
-    prices.marketPrice = '$' + marketMatch[1];
-  }
+    // Find the best match by card number
+    const targetNum = number.padStart(3, '0') + '/' + total.padStart(3, '0');
+    let match = allResults.find(r => {
+      const num = r.customAttributes?.number || '';
+      return num === targetNum || num === `${number}/${total}`;
+    });
 
-  const medianMatch = bodyText.match(/(?:Median|Listed Median)[\s:]*?\$?([\d,]+\.?\d*)/i);
-  if (medianMatch) {
-    prices.listedMedian = '$' + medianMatch[1];
-  }
-
-  const lowMatch = bodyText.match(/(?:Low|Lowest)[\s:]*?\$?([\d,]+\.?\d*)/i);
-  if (lowMatch) {
-    prices.low = '$' + lowMatch[1];
-  }
-
-  // Try to find any dollar amounts near relevant keywords
-  const pricePattern = /\$([\d,]+\.?\d*)/g;
-  const allPrices = [];
-  let match;
-  while ((match = pricePattern.exec(bodyText)) !== null) {
-    const val = parseFloat(match[1].replace(/,/g, ''));
-    if (val > 0.5 && val < 1000000) {
-      allPrices.push(match[0]);
+    // Fallback: match by name and exclude shadowless/1st edition
+    if (!match) {
+      match = allResults.find(r =>
+        r.productName?.toLowerCase() === cardName.toLowerCase() &&
+        !r.setName?.toLowerCase().includes('shadowless') &&
+        !r.productName?.toLowerCase().includes('1st edition')
+      );
     }
-  }
 
-  // Find product URL if we landed on search results
-  let productUrl = url;
-  $('a').each((_, el) => {
-    const href = $(el).attr('href');
-    if (href && href.includes('/product/') && href.includes('pokemon') && !productUrl.includes('/product/')) {
-      productUrl = href.startsWith('http')
-        ? href
-        : `https://www.tcgplayer.com${href}`;
+    if (!match && allResults.length > 0) {
+      match = allResults[0];
     }
-  });
 
-  const title = $('h1').first().text().trim() || $('title').text().trim();
+    const prices = {};
+    if (match) {
+      if (match.marketPrice) prices.marketPrice = '$' + match.marketPrice.toFixed(2);
+      if (match.lowestPrice) prices.lowestPrice = '$' + match.lowestPrice.toFixed(2);
+      if (match.lowestPriceWithShipping) prices.lowestWithShipping = '$' + match.lowestPriceWithShipping.toFixed(2);
+    }
 
-  return {
-    source: 'TCGPlayer',
-    url: productUrl,
-    title,
-    prices,
-    searchResults: results.slice(0, 5),
-    currency: 'USD',
-  };
+    const productUrl = match
+      ? `https://www.tcgplayer.com/product/${match.productId}`
+      : `https://www.tcgplayer.com/search/pokemon/product?q=${query}`;
+
+    return {
+      source: 'TCGPlayer',
+      url: productUrl,
+      title: match?.productName || '',
+      setName: match?.setName || '',
+      prices,
+      currency: 'USD',
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
