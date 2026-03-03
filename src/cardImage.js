@@ -42,12 +42,8 @@ export async function fetchCardImage(cardInfo) {
     );
     const candidates = exactName.length > 0 ? exactName : numberMatches;
 
-    if (candidates.length === 1) {
-      console.log(`[CardImage] Single match: ${candidates[0].id}`);
-      return makeResult(candidates[0], candidates[0].image || '');
-    }
-
-    // Multiple matches — fetch details to find the one from the correct set (by total card count)
+    // Fetch details to get set name (and to match by set total if multiple candidates)
+    let bestCandidate = candidates[0];
     for (const candidate of candidates) {
       try {
         const detailRes = await fetch(`${TCGDEX_BASE}/cards/${candidate.id}`, {
@@ -59,29 +55,38 @@ export async function fetchCardImage(cardInfo) {
         const setTotal = detail.set?.cardCount?.official || detail.set?.cardCount?.total;
         if (String(setTotal) === String(total)) {
           console.log(`[CardImage] Set match: ${detail.id} (${detail.set?.name})`);
-          return {
-            id: detail.id,
-            name: detail.name,
-            number: detail.localId,
-            set: detail.set?.name || '',
-            imageSmall: detail.image ? `${detail.image}/low.png` : '',
-            imageLarge: detail.image ? `${detail.image}/high.png` : '',
-          };
+          return makeDetailResult(detail);
+        }
+        // Remember first detail as fallback
+        if (candidate === candidates[0]) {
+          bestCandidate = detail;
         }
       } catch {
         continue;
       }
     }
 
-    // No set match found — use the first candidate
-    console.log(`[CardImage] No set match, using first: ${candidates[0].id}`);
-    return makeResult(candidates[0], candidates[0].image || '');
+    // No set match found — use the first candidate's detail (or basic info)
+    console.log(`[CardImage] No set match, using first: ${bestCandidate.id}`);
+    if (bestCandidate.set) return makeDetailResult(bestCandidate);
+    return makeResult(bestCandidate, bestCandidate.image || '');
   } catch (err) {
     console.error('[CardImage] Error:', err.message);
     return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+function makeDetailResult(detail) {
+  return {
+    id: detail.id,
+    name: detail.name,
+    number: detail.localId,
+    set: detail.set?.name || '',
+    imageSmall: detail.image ? `${detail.image}/low.png` : '',
+    imageLarge: detail.image ? `${detail.image}/high.png` : '',
+  };
 }
 
 function makeResult(card, baseImage) {

@@ -112,8 +112,8 @@ main {
   display: flex;
   align-items: flex-start;
   gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
   background: #1a2a3a;
   border-radius: 10px;
   border: 1px solid #2d3e50;
@@ -121,6 +121,7 @@ main {
 
 .card-image-wrap {
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .card-image-wrap img {
@@ -139,28 +140,94 @@ main {
   color: #8899a6;
   font-size: 0.9rem;
   padding-top: 0.5rem;
+  flex: 1;
 }
 
 .query-info .card-name {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #ffcb05;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.3rem;
+  text-transform: capitalize;
 }
 
 .query-info .card-set {
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: #aabbcc;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .query-info .card-number {
-  font-size: 0.85rem;
-  color: #556677;
+  font-size: 0.9rem;
+  color: #667788;
+  margin-bottom: 0.5rem;
 }
 
 .query-info strong {
   color: #ffcb05;
+}
+
+/* Recommended price section */
+.recommended-section {
+  margin-bottom: 1.2rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #1a2a3a 0%, #1f3344 100%);
+  border-radius: 10px;
+  border: 1px solid #ffcb05;
+}
+
+.recommended-section h3 {
+  font-size: 1rem;
+  color: #ffcb05;
+  margin-bottom: 0.8rem;
+}
+
+.rec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.8rem;
+}
+
+.rec-card {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 0.9rem;
+}
+
+.rec-card__label {
+  font-size: 0.8rem;
+  color: #8899a6;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rec-card__price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #44cc88;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 0.3rem;
+}
+
+.rec-card__conversions {
+  font-size: 0.8rem;
+  color: #8899a6;
+  line-height: 1.5;
+}
+
+.rec-card__note {
+  font-size: 0.7rem;
+  color: #556677;
+  margin-top: 0.3rem;
+  font-style: italic;
+}
+
+.rec-note {
+  font-size: 0.75rem;
+  color: #556677;
+  margin-top: 0.7rem;
+  text-align: right;
 }
 
 /* Results grid */
@@ -346,6 +413,24 @@ main {
 
 @media (max-width: 600px) {
   .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header {
+    flex-direction: column-reverse;
+    align-items: center;
+    text-align: center;
+  }
+
+  .card-image-wrap {
+    margin-left: 0;
+  }
+
+  .card-image-wrap img {
+    width: 150px;
+  }
+
+  .rec-grid {
     grid-template-columns: 1fr;
   }
 

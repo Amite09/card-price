@@ -6,6 +6,7 @@ const errorBanner = document.getElementById('error-banner');
 const cardHeader = document.getElementById('card-header');
 const cardImageWrap = document.getElementById('card-image-wrap');
 const queryInfo = document.getElementById('query-info');
+const recommendedDiv = document.getElementById('recommended');
 
 const SOURCES = ['pricecharting', 'ebay', 'cardmarket', 'tcgplayer', 'trollandtoad'];
 const SOURCE_LABELS = {
@@ -16,6 +17,23 @@ const SOURCE_LABELS = {
   trollandtoad: 'TrollandToad',
 };
 
+// Approximate exchange rates (USD base)
+const RATES = { EUR: 0.92, NIS: 3.65 };
+
+// Try to fetch live rates on page load
+(async () => {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.rates) {
+        RATES.EUR = data.rates.EUR || RATES.EUR;
+        RATES.NIS = data.rates.ILS || RATES.NIS;
+      }
+    }
+  } catch { /* use fallback rates */ }
+})();
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const query = input.value.trim();
@@ -23,6 +41,7 @@ form.addEventListener('submit', async (e) => {
 
   errorBanner.hidden = true;
   cardHeader.hidden = true;
+  recommendedDiv.hidden = true;
   searchBtn.disabled = true;
   searchBtn.textContent = 'Searching...';
 
@@ -48,7 +67,8 @@ form.addEventListener('submit', async (e) => {
       cardImageWrap.innerHTML = '';
     }
 
-    let infoHtml = `<div class="card-name">${escapeHtml(json.query.cardName)}</div>`;
+    const displayName = titleCase(json.query.cardName);
+    let infoHtml = `<div class="card-name">${escapeHtml(displayName)}</div>`;
     if (ci && ci.set) {
       infoHtml += `<div class="card-set">${escapeHtml(ci.set)}</div>`;
     }
@@ -71,6 +91,9 @@ form.addEventListener('submit', async (e) => {
         cardEl.outerHTML = renderCard(s, 'error', null, sourceData?.error);
       }
     });
+
+    // Compute and show recommended prices
+    renderRecommended(json.results);
   } catch (err) {
     errorBanner.textContent = `Network error: ${err.message}`;
     errorBanner.hidden = false;
@@ -80,6 +103,168 @@ form.addEventListener('submit', async (e) => {
     searchBtn.textContent = 'Search';
   }
 });
+
+// --- Recommended price calculation ---
+
+function renderRecommended(results) {
+  // Collect prices per category (all in USD)
+  const buckets = {
+    raw: [],
+    grade9: [],
+    grade9_5: [],
+    psa10: [],
+  };
+
+  // PriceCharting — most reliable single source for graded prices
+  const pc = results.pricecharting;
+  if (pc?.status === 'ok' && pc.data?.prices) {
+    const p = pc.data.prices;
+    if (p.ungraded) push(buckets.raw, parseDollar(p.ungraded), 'PriceCharting');
+    if (p.grade9) push(buckets.grade9, parseDollar(p.grade9), 'PriceCharting');
+    if (p.grade9_5) push(buckets.grade9_5, parseDollar(p.grade9_5), 'PriceCharting');
+    if (p.psa10) push(buckets.psa10, parseDollar(p.psa10), 'PriceCharting');
+  }
+
+  // eBay sold — only use sales with a detected PSA grade
+  const eb = results.ebay;
+  if (eb?.status === 'ok' && eb.data?.recentSales?.length) {
+    for (const sale of eb.data.recentSales) {
+      const price = parseDollar(sale.price);
+      if (!price || !sale.grade) continue;
+      const gradeNum = parseFloat(sale.grade.replace(/PSA\s*/i, ''));
+      if (gradeNum === 10) push(buckets.psa10, price, 'eBay');
+      else if (gradeNum >= 9.5) push(buckets.grade9_5, price, 'eBay');
+      else if (gradeNum >= 9) push(buckets.grade9, price, 'eBay');
+    }
+  }
+
+  // Cardmarket — ungraded singles market (EUR → USD)
+  const cm = results.cardmarket;
+  if (cm?.status === 'ok' && cm.data?.prices) {
+    const eurRate = RATES.EUR || 0.92;
+    // Use 30-day avg if available, otherwise price trend
+    const avg30 = parseEuro(cm.data.prices.avg30day);
+    const trend = parseEuro(cm.data.prices.priceTrend);
+    const eurPrice = avg30 || trend;
+    if (eurPrice) push(buckets.raw, eurPrice / eurRate, 'Cardmarket');
+  }
+
+  // TCGPlayer — ungraded market price
+  const tcp = results.tcgplayer;
+  if (tcp?.status === 'ok' && tcp.data?.prices) {
+    const mp = parseDollar(tcp.data.prices.marketPrice);
+    if (mp) push(buckets.raw, mp, 'TCGPlayer');
+  }
+
+  // Remove outliers (values more than 3x the median) from each bucket
+  for (const key of Object.keys(buckets)) {
+    buckets[key] = removeOutliers(buckets[key]);
+  }
+
+  const categories = [
+    { key: 'raw', label: 'Raw / Ungraded' },
+    { key: 'grade9', label: 'PSA 9' },
+    { key: 'grade9_5', label: 'PSA 9.5' },
+    { key: 'psa10', label: 'PSA 10' },
+  ];
+
+  const hasData = categories.some(c => buckets[c.key].length > 0);
+  if (!hasData) {
+    recommendedDiv.hidden = true;
+    return;
+  }
+
+  let totalPoints = 0;
+  let html = `<h3>Recommended Price</h3><div class="rec-grid">`;
+
+  for (const cat of categories) {
+    const items = buckets[cat.key];
+    if (items.length === 0) continue;
+    const prices = items.map(i => i.value);
+    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const sources = [...new Set(items.map(i => i.source))].join(', ');
+    totalPoints += items.length;
+    html += renderRecCard(cat.label, avg, items.length, sources);
+  }
+
+  html += `</div>`;
+  html += `<div class="rec-note">Based on ${totalPoints} data points across sources</div>`;
+
+  recommendedDiv.innerHTML = html;
+  recommendedDiv.hidden = false;
+}
+
+function push(arr, value, source) {
+  if (value != null && value > 0) arr.push({ value, source });
+}
+
+function removeOutliers(items) {
+  if (items.length < 3) return items;
+  const sorted = [...items].sort((a, b) => a.value - b.value);
+  const mid = sorted[Math.floor(sorted.length / 2)].value;
+  return items.filter(i => i.value >= mid / 3 && i.value <= mid * 3);
+}
+
+function renderRecCard(label, usdPrice, count, sources) {
+  const eur = usdPrice * (RATES.EUR || 0.92);
+  const nis = usdPrice * (RATES.NIS || 3.65);
+
+  return `
+    <div class="rec-card">
+      <div class="rec-card__label">${label}</div>
+      <div class="rec-card__price">$${formatPrice(usdPrice)}</div>
+      <div class="rec-card__conversions">
+        ${formatPrice(eur)} EUR &nbsp;|&nbsp; ${formatPrice(nis)} ILS
+      </div>
+      <div class="rec-card__note">${sources}</div>
+    </div>`;
+}
+
+function formatPrice(val) {
+  if (val >= 1000) return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return val.toFixed(2);
+}
+
+function parseDollar(str) {
+  if (!str) return null;
+  const match = String(str).match(/\$?([\d,]+\.?\d*)/);
+  if (!match) return null;
+  const val = parseFloat(match[1].replace(/,/g, ''));
+  return isNaN(val) || val === 0 ? null : val;
+}
+
+function parseEuro(str) {
+  if (!str) return null;
+  const match = String(str).match(/([\d.,]+)\s*€?/);
+  if (!match) return null;
+  // European format: 1.234,56 or 1234.56
+  let raw = match[1];
+  if (raw.includes(',') && raw.indexOf(',') > raw.indexOf('.')) {
+    raw = raw.replace(/\./g, '').replace(',', '.');
+  } else {
+    raw = raw.replace(/,/g, '');
+  }
+  const val = parseFloat(raw);
+  return isNaN(val) || val === 0 ? null : val;
+}
+
+function average(arr) {
+  const valid = arr.filter(v => v != null && v > 0);
+  if (valid.length === 0) return null;
+  return valid.reduce((a, b) => a + b, 0) / valid.length;
+}
+
+function titleCase(str) {
+  return str.replace(/\b\w+/g, w =>
+    w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+  ).replace(/\bVmax\b/gi, 'VMAX')
+   .replace(/\bVstar\b/gi, 'VSTAR')
+   .replace(/\bEx\b/g, 'ex')
+   .replace(/\bGx\b/gi, 'GX')
+   .replace(/\bV\b/g, 'V');
+}
+
+// --- Source card renderers ---
 
 function renderCard(source, state, data, error) {
   const label = SOURCE_LABELS[source] || source;
